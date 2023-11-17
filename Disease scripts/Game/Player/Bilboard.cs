@@ -2,10 +2,15 @@ using UnityEngine;
 
 public class Bilboard : MonoBehaviour
 {
-    public Transform cam; 
+    [SerializeField] private Transform cameraTrans;
+
+    private void Start()
+    {
+        if (cameraTrans == null) cameraTrans = Camera.main.transform;
+    }
 
     void LateUpdate()
     {
-        transform.LookAt(transform.position + cam.forward);
+        transform.LookAt(transform.position + cameraTrans.forward);
     }
 }

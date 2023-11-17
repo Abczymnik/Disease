@@ -19,11 +19,6 @@ public sealed class LookForPlayer : GAction
         base.Awake();
     }
 
-    private void Start()
-    {
-        
-    }
-
     private WorldState[] SetPreconditions()
     {
         WorldState[] preConditions =

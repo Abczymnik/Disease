@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 
-//Helper class for dict view
 [System.Serializable]
 public class WorldState
 {
@@ -14,7 +13,6 @@ public class WorldState
     }
 }
 
-//Dictionary of world states
 public class WorldStates
 {
     public Dictionary<string, int> states;

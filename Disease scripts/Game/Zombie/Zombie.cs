@@ -1,47 +1,42 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
 public class Zombie : MonoBehaviour
 {
-    private ZHealthBar healthBar;
+    [SerializeField] private HealthBar zombieHealthBar;
+    [SerializeField] private GameObject note;
     private Animator zombieAnimator;
-    private PlayerStats player;
-    private Inventory playerInventory;
 
-    private float _maxHealth = 100f;
-    private float _currentHealth = 100f;
+    private UnityAction<object> onZombieDeath;
+
     private float experiencePoints = 40f;
 
     public float DropChance { get; private set; } = 1f;
     public float AttackDamage { get; private set; } = 10;
-
     public bool IsDead { get; private set; }
-
-    public float MaxHealth
-    {
-        get { return _maxHealth; }
-        set
-        {
-            _maxHealth = value;
-            healthBar.MaxHealth = value;
-        }
-    }
+    public float MaxHealth { get => zombieHealthBar.MaxHealth; private set => zombieHealthBar.MaxHealth = value; }
 
     public float CurrentHealth
     {
-        get { return _currentHealth; }
+        get { return zombieHealthBar.CurrentHealth; }
         set
         {
             if (value <= 0)
             {
-                _currentHealth = 0;
-                healthBar.CurrentHealth = _currentHealth;
-                Die();
+                zombieHealthBar.CurrentHealth = 0;
+                EventManager.TriggerEvent("ZombieDeath", this.GetInstanceID());
                 return;
             }
-            _currentHealth = value;
-            healthBar.CurrentHealth = value;
+
+            zombieHealthBar.CurrentHealth = value;
         }
+    }
+
+    private void OnEnable()
+    {
+        onZombieDeath += OnDeath;
+        EventManager.StartListening("ZombieDeath", onZombieDeath);
     }
 
     private void Awake()
@@ -51,37 +46,33 @@ public class Zombie : MonoBehaviour
 
     private void Start()
     {
-        GameObject playerObj = GameObject.Find("/Player");
-        player = playerObj.GetComponent<PlayerStats>();
-        playerInventory = playerObj.transform.GetChild(3).GetComponent<Inventory>();
-        healthBar = transform.GetChild(2).GetChild(0).GetComponent<ZHealthBar>();
+        if(zombieHealthBar == null) zombieHealthBar = transform.GetChild(2).GetChild(0).GetComponent<HealthBar>();
+        if(note == null) note = transform.GetChild(0).GetChild(0).gameObject;
     }
 
-    public void TakeDmg(float hit)
+    public void TakeDamage(float hit)
     {
         CurrentHealth -= hit;
     }    
 
-    //Enable Note object from Zombie pocket and increment notes available for player
     private void DropItem(float chance)
     {
         float drop = Random.Range(0, 1f);
         if (drop > chance) return;
-        GameObject note = transform.GetChild(0).GetChild(0).gameObject; //find note object
-        playerInventory.NotesOnMap++;
+        EventManager.TriggerEvent("NewNoteOnMap");
         note.SetActive(true);
     }
 
-
-
-    //Perform zombie death
-    private void Die()
+    private void OnDeath(object zombieID)
     {
+        if (this.GetInstanceID() != (int)zombieID) return;
+
         IsDead = true;
-        player.GiveExp(experiencePoints);
-        zombieAnimator.SetInteger("deadType", Random.Range(0, 2)); //forward fall or back fall
-        zombieAnimator.SetBool("dead", true);
+        EventManager.TriggerEvent("AddExperience", experiencePoints);
         zombieAnimator.SetBool("attack", false);
+        zombieAnimator.SetInteger("deadType", Random.Range(0, 2));
+        zombieAnimator.SetBool("dead", true);
+
         GetComponent<Collider>().enabled = false;
         GetComponent<RootMotion>().enabled = false;
         GetComponent<AttackPlayer>().enabled = false;
@@ -90,7 +81,13 @@ public class Zombie : MonoBehaviour
         GetComponent<LookForPlayer>().enabled = false;
         GetComponent<ZombieGoals>().enabled = false;
         GetComponent<NavMeshAgent>().enabled = false;
-        transform.GetChild(2).gameObject.SetActive(false); //hp bar off
+        GetComponent<GAgent>().enabled = false;
+        transform.GetChild(2).gameObject.SetActive(false);
         DropItem(DropChance);
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening("ZombieDeath", onZombieDeath);
     }
 }

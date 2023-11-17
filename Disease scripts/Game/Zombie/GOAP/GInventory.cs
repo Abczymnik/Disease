@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-//Implementation if future
 public class GInventory
 {
     public List<GameObject> items = new List<GameObject>();
@@ -15,7 +14,7 @@ public class GInventory
     {
         foreach(GameObject i in items)
         {
-            if(i.tag == tag)
+            if(i.CompareTag(tag))
             {
                 return i;
             }
@@ -34,6 +33,7 @@ public class GInventory
                 break;
             }
         }
+
         if(indexToRemove >= -1)
         {
             items.RemoveAt(indexToRemove);

@@ -7,7 +7,6 @@ public class Node
     public Dictionary<string, int> state;
     public GAction action;
 
-    //Basic constructor w/o zombie beliefs
     public Node(Node parent, float cost, Dictionary<string, int> allstates, GAction action)
     {
         this.parent = parent;
@@ -15,8 +14,7 @@ public class Node
         this.state = new Dictionary<string, int>(allstates);
         this.action = action;
     }
-    
-    //Constructor with zombie beliefs
+
     public Node(Node parent, float cost, Dictionary<string, int> allstates, Dictionary<string, int> beliefstates, GAction action)
     {
         this.parent = parent;
@@ -37,7 +35,6 @@ public class GPlanner
 {
     public Queue<GAction> Plan(List<GAction> actions, Dictionary<string, int> goal, WorldStates beliefstates)
     {
-        //Basic form of GOAP, every action is achievable atm
         List<GAction> usableActions = new List<GAction>();
         foreach(GAction a in actions)
         {
@@ -52,13 +49,11 @@ public class GPlanner
 
         bool success = BuildGraph(start, leaves, usableActions, goal);
 
-        //If !success there is no plan
         if(!success)
         {
             return null;
         }
 
-        //Find cheapest leaf after recursive built graph
         Node cheapest = null;
         foreach(Node leaf in leaves)
         {
@@ -75,7 +70,6 @@ public class GPlanner
             }
         }
 
-        //Set final actions to do
         List<GAction> result = new List<GAction>();
         Node n = cheapest;
         while( n != null)
@@ -87,7 +81,6 @@ public class GPlanner
             n = n.parent;
         }
 
-        //Queue final actions to do
         Queue<GAction> queue = new Queue<GAction>();
         foreach(GAction a in result)
         {
@@ -101,7 +94,6 @@ public class GPlanner
         bool foundPath = false;
         foreach(GAction action in usableActions)
         {
-            //Are preconditions for this action achievable? If achievabble add effects to currentState dict
             if(action.IsAchievableGiven(parent.state))
             {
                 Dictionary<string, int> currentState = new Dictionary<string, int>(parent.state);
@@ -113,10 +105,8 @@ public class GPlanner
                     }
                 }
 
-                //New node with new cost and new effects Dict
                 Node node = new Node(parent, parent.cost + action.Cost, currentState, action);
 
-                //If goal would be achieved after action effects return true otherwise try to find new path w/o this action
                 if (GoalAchieved(goal, currentState))
                 {
                     leaves.Add(node);
@@ -148,7 +138,6 @@ public class GPlanner
         return true;
     }
 
-    //Create Subset of actions w/o removeMe action
     private List<GAction> ActionSubset(List<GAction> actions, GAction removeMe)
     {
         List<GAction> subset = new List<GAction>();

@@ -6,38 +6,40 @@ using UnityEngine.Rendering.HighDefinition;
 using System.Collections.Generic;
 using UnityEngine.Rendering;
 using UnityEngine.InputSystem;
+using UnityEngine.Events;
 
 public class SceneLoader : MonoBehaviour
 {
-    private GameObject loadingBar;
+    [SerializeField] private GameObject loadingBar;
+    [SerializeField] private Volume skyLightIntense;
     private Slider loadingSlider;
     private List<CanvasGroup> buttonsAlpha = new List<CanvasGroup>();
     private List<HDAdditionalLightData> lightsData = new List<HDAdditionalLightData>();
     private List<float> lightIntensities = new List<float>();
 
-    private GameObject candleLight;
-    private SpecialZombie freeZombie;
-
-    private Volume skyLightIntense;
+    private UnityAction onLevelChange;
 
     private void Awake()
     {
-        loadingBar = GameObject.Find("/Menu").transform.GetChild(0).gameObject;
-        candleLight = GameObject.Find("/Cursor Lantern/Candle/Point light");
+        if(loadingBar == null) loadingBar = GameObject.Find("/Menu").transform.GetChild(0).gameObject;
         loadingSlider = loadingBar.transform.GetChild(1).GetComponent<Slider>();
-        skyLightIntense = GameObject.Find("/Settings/Dim Sky").GetComponent<Volume>();
+        if(skyLightIntense == null) skyLightIntense = GameObject.Find("/Settings/Dim Sky").GetComponent<Volume>();
         GetLights();
         TurnOffLights();
     }
 
+    private void OnEnable()
+    {
+        onLevelChange += OnLevelChange;
+        EventManager.StartListening("ChangeLevel", onLevelChange);
+    }
+
     private void Start()
     {
-        freeZombie = GameObject.Find("Zombie/Special Zombie").GetComponent<SpecialZombie>();
         GetButtons();
-        StartCoroutine(LoadScene());
+        StartCoroutine(LoadFirstScene());
     }
-    
-    //Turn off scene lights
+
     private void TurnOffLights()
     {
         foreach(HDAdditionalLightData light in lightsData)
@@ -46,15 +48,6 @@ public class SceneLoader : MonoBehaviour
         }
     }
 
-    //Load next scene
-    public void LoadNextLevel()
-    {
-        freeZombie.LetZombieFree();
-        OffCandleBlinking();
-        StartCoroutine(LoadNextScene());
-    }
-
-    //Get lights from scene
     private void GetLights()
     {
         GameObject[] lightsObj = GameObject.FindGameObjectsWithTag("Light");
@@ -66,7 +59,6 @@ public class SceneLoader : MonoBehaviour
         }
     }
 
-    //Get buttons from scene
     private void GetButtons()
     {
         GameObject[] buttons = GameObject.FindGameObjectsWithTag("Menu Buttons");
@@ -76,8 +68,7 @@ public class SceneLoader : MonoBehaviour
         }
     }
 
-    //Smooth load this scene view
-    IEnumerator LoadScene()
+    IEnumerator LoadFirstScene()
     {
         float timer = 0;
         float speed = 3f;
@@ -85,11 +76,6 @@ public class SceneLoader : MonoBehaviour
         while (timer < speed)
         {
             timer += Time.deltaTime;
-
-            foreach (CanvasGroup button in buttonsAlpha)
-            {
-                button.alpha = Mathf.Lerp(0, 1, timer / speed);
-            }
 
             for (int i = 0; i < lightsData.Count; i++)
             {
@@ -100,31 +86,56 @@ public class SceneLoader : MonoBehaviour
 
             yield return null;
         }
+ 
+        timer = 0;
+        speed = 1f;
+        while (timer < speed)
+        {
+            timer += Time.deltaTime;
+
+            foreach (CanvasGroup button in buttonsAlpha)
+            {
+                button.alpha = Mathf.Lerp(0, 1, timer / speed);
+            }
+
+            yield return null;
+        }
     }
 
-    //Dim light emitters and buttons in 3 sec and then load intro
     IEnumerator LoadNextScene()
     {
         InputSystem.DisableDevice(Mouse.current);
         loadingBar.SetActive(true);
         float timer = 0;
+        float speed = 1f;
 
-        while (timer < 3f)
+        while (timer < speed)
         {
             timer += Time.deltaTime;
-            loadingSlider.value = timer;
 
             foreach (CanvasGroup button in buttonsAlpha)
             {
-                button.alpha = Mathf.Lerp(1, 0, timer / 3);
+                button.alpha = Mathf.Lerp(1, 0, timer / speed);
             }
+
+            loadingSlider.value = timer;
+            yield return null;
+        }
+
+        timer = 0;
+        speed = 2.5f;
+
+        while (timer < speed)
+        {
+            timer += Time.deltaTime;
+            loadingSlider.value = timer+1;
 
             for (int i = 0; i < lightsData.Count; i++)
             {
-                lightsData[i].intensity = Mathf.Lerp(lightIntensities[i], 0, timer / 3);
+                lightsData[i].intensity = Mathf.Lerp(lightIntensities[i], 0, timer / speed);
             }
 
-            skyLightIntense.weight = Mathf.Lerp(0, 1, timer / 3);
+            skyLightIntense.weight = Mathf.Lerp(0, 1, timer / speed);
 
             yield return null;
         }
@@ -132,9 +143,13 @@ public class SceneLoader : MonoBehaviour
         SceneManager.LoadScene(1);
     }
 
-    //Disable Lantern candle blinking script
-    private void OffCandleBlinking()
+    private void OnLevelChange()
     {
-        candleLight.GetComponent<CandleIntense>().enabled = false;
+        StartCoroutine(LoadNextScene());
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening("ChangeLevel", onLevelChange);
     }
 }

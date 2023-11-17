@@ -18,7 +18,6 @@ public class WindController : MonoBehaviour
         StartCoroutine(WindVariations());
     }
 
-    //Set some wind forces for smoke similar to foliage wind
     IEnumerator WindVariations()
     {
         while (true)
@@ -41,5 +40,4 @@ public class WindController : MonoBehaviour
             yield return new WaitForSeconds(2.4f);
         }
     }
-
 }

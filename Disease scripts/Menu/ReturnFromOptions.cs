@@ -15,13 +15,11 @@ public class ReturnFromOptions : MonoBehaviour, IPointerClickHandler
         mainMenuTrans = optionsButton.parent;
     }
 
-    //Show basic cursor while in options
     private void OnEnable()
     {
         CursorSwitch.ShowCursor();
     }
 
-    //Enable main buttons after return from options
     private void EnableMainButtons()
     {
         canvasArray = mainMenuTrans.GetComponentsInChildren<CanvasGroup>();

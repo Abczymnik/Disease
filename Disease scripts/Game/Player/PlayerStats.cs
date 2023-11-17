@@ -1,126 +1,97 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class PlayerStats : MonoBehaviour
 {
-    private Animator playerAnimator;
-    private HealthOrb healthOrb;
-    private Experience experience;
-    private ClickToMove playerMovement;
+    [SerializeField] private HealthBar playerHealth;
+    [SerializeField] private Experience playerExperience;
+    private PlayerMovement playerMovement;
     private Attack playerAttack;
-    private PerformDeath backToMenu;
+    private Animator playerAnimator;
+
+    private UnityAction onPlayerDeath;
+    private UnityAction onLevelUp;
+    private UnityAction<object> onPlayerDamage;
+    private UnityAction<object> onPlayerExperience;
+
+    private Coroutine restoreHealthCoroutine;
 
     public float AttackDamage { get; private set; } = 12f;
     public float AttackSpeed { get; private set; } = 1f;
     public float MovementSpeed { get; private set; } = 3.5f;
-    public float MaxHealth { get => healthOrb.MaxHealth; private set => healthOrb.MaxHealth = value; }
-    public float MaxExp { get => experience.MaxExp; private set => experience.MaxExp = value; }
-
-    public float TimeHpRef { get; private set; } = 15f;
-    private Coroutine restoreHealthCoroutine;
+    public float TimeForHealthRefill { get; private set; } = 15f;
     public bool IsDead { get; private set; } = false;
 
-    //UI properties
+    public float MaxHealth { get => playerHealth.MaxHealth; private set => playerHealth.MaxHealth = value; }
+    public float MaxExp { get => playerExperience.MaxExp; private set => playerExperience.MaxExp = value; }
+
     public float CurrentHealth
     {
-        get { return healthOrb.CurrentHealth; }
+        get { return playerHealth.CurrentHealth; }
         private set
         {
-            healthOrb.CurrentHealth = value;
-
-            if (healthOrb.CurrentHealth <= 0)
+            if(value <= 0)
             {
-                healthOrb.CurrentHealth = 0;
-                Die();
+                playerHealth.CurrentHealth = 0;
+                EventManager.TriggerEvent("PlayerDeath");
+                return;
             }
+
+            playerHealth.CurrentHealth = value;
         }
     }
 
     public float CurrentExp
     {
-        get { return experience.CurrentExp; }
+        get { return playerExperience.CurrentExp; }
         private set
         {
-            experience.CurrentExp = value;
-
-            if (experience.CurrentExp >= experience.MaxExp)
+            if(value >= MaxExp)
             {
-                experience.CurrentExp = experience.CurrentExp - experience.MaxExp;
-                LevelUp();
+                playerExperience.CurrentExp = value - MaxExp;
+                EventManager.TriggerEvent("LevelUp");
+                return;
             }
+
+            playerExperience.CurrentExp = value;
         }
     }
 
     private void Awake()
     {
-        playerAnimator = GetComponent<Animator>();
-        healthOrb = transform.Find("Health orb").GetComponent<HealthOrb>();
-        experience = transform.Find("Experience").GetComponent<Experience>();
+        if (playerHealth == null) playerHealth = transform.Find("Health orb").GetComponent<HealthBar>();
+        if (playerExperience == null) playerExperience = transform.Find("Experience").GetComponent<Experience>();
+    }
+
+    private void OnEnable()
+    {
+        onPlayerDeath += OnPlayerDeath;
+        EventManager.StartListening("PlayerDeath", onPlayerDeath);
+        onLevelUp += OnLevelUp;
+        EventManager.StartListening("LevelUp", onLevelUp);
+        onPlayerDamage += OnPlayerDamage;
+        EventManager.StartListening("DamagePlayer", onPlayerDamage);
+        onPlayerExperience += OnPlayerExperience;
+        EventManager.StartListening("AddExperience", onPlayerExperience);
     }
 
     private void Start()
     {
-        playerMovement = GetComponent<ClickToMove>();
+        playerAnimator = GetComponent<Animator>();
+        playerMovement = GetComponent<PlayerMovement>();
         playerAttack = GetComponent<Attack>();
-        backToMenu = GetComponent<PerformDeath>();
         MaxHealth = 100f;
-        CurrentHealth = 100f;
-        MaxExp = 100f;
-        CurrentExp = 40f;
-    }
-
-    //Deal dmg to player and start hp restore coroutine
-    public void TakeDamage(float damage)
-    {
-        CurrentHealth -= damage;
-        if(CurrentHealth < 0) { return; }
-        if(restoreHealthCoroutine == null)
-        {
-            restoreHealthCoroutine = StartCoroutine(RestoreHealthCoroutine());
-            return;
-        }
-
-        StopCoroutine(restoreHealthCoroutine);
-        restoreHealthCoroutine = StartCoroutine(RestoreHealthCoroutine());
-        
-    }
-    
-    //Add experience points to player
-    public void GiveExp(float experiencePoints)
-    {
-        CurrentExp += experiencePoints;
-    }
-
-    //Perform Level up
-    private void LevelUp()
-    {
-        MaxHealth += 10;
         CurrentHealth = MaxHealth;
-        MaxExp += 10;
-        AttackDamage += 2;
-        AttackSpeed += 0.1f;
-        MovementSpeed += 0.2f;
-        playerMovement.LevelUp();
-        playerAttack.LevelUp();
-    }
-
-    //Player died
-    void Die()
-    {
-        IsDead = true;
-        playerAnimator.SetBool("dead", true);
-        PlayerUI.BlockInput();
-        playerMovement.enabled = false;
-        playerAttack.enabled = false;
-        StopAllCoroutines();
-        backToMenu.enabled = true;
+        MaxExp = 100f;
+        CurrentExp = 0f;
     }
 
     IEnumerator RestoreHealthCoroutine()
     {
-        yield return new WaitForSeconds(TimeHpRef);
+        yield return new WaitForSeconds(TimeForHealthRefill);
 
-        while(CurrentHealth < MaxHealth)
+        while (CurrentHealth < MaxHealth)
         {
             CurrentHealth += 1f * Time.deltaTime;
             yield return null;
@@ -129,7 +100,53 @@ public class PlayerStats : MonoBehaviour
         restoreHealthCoroutine = null;
     }
 
+    private void OnPlayerExperience(object experienceData)
+    {
+        float experienceToAdd = (float)experienceData;
+        CurrentExp += experienceToAdd;
+    }
 
+    private void OnPlayerDamage(object damageData)
+    {
+        float damage = (float)damageData;
+        CurrentHealth -= damage;
+        if (CurrentHealth < 0) { return; }
+
+        if (restoreHealthCoroutine != null) StopCoroutine(restoreHealthCoroutine);
+
+        restoreHealthCoroutine = StartCoroutine(RestoreHealthCoroutine());
+    }
+
+    private void OnLevelUp()
+    {
+        MaxHealth += 10;
+        CurrentHealth = MaxHealth;
+        MaxExp += 10;
+        AttackDamage += 2;
+        AttackSpeed += 0.1f;
+        MovementSpeed += 0.2f;
+    }
+
+    private void OnPlayerDeath()
+    {
+        IsDead = true;
+        playerAnimator.SetBool("dead", true);
+        EventManager.StopListening("LevelUp", onLevelUp);
+        EventManager.StopListening("DamagePlayer", onPlayerDamage);
+        EventManager.StopListening("AddExperience", onPlayerExperience);
+        PlayerUI.BlockInput();
+        playerMovement.enabled = false;
+        playerAttack.enabled = false;
+        if (restoreHealthCoroutine != null) StopCoroutine(restoreHealthCoroutine);
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening("PlayerDeath", onPlayerDeath);
+        EventManager.StopListening("LevelUp", onLevelUp);
+        EventManager.StopListening("DamagePlayer", onPlayerDamage);
+        EventManager.StopListening("AddExperience", onPlayerExperience);
+    }
 }
 
 

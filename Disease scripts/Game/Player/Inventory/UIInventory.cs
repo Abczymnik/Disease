@@ -4,14 +4,11 @@ using UnityEngine;
 public class UIInventory : MonoBehaviour
 {
     private List<UIItem> uIItems = new List<UIItem>();
-    [SerializeField]
-    private GameObject slotPrefab;
-    [SerializeField]
-    private Transform slotPanel;
+    [SerializeField] private GameObject slotPrefab;
+    [SerializeField] private Transform slotPanel;
 
-    public int NumberOfSlots { get; set; } = 16;
+    public int NumberOfSlots { get; private set; } = 16;
 
-    //Fill inventory panel with slots and null items
     private void Awake()
     {
         for(int i = 0; i < NumberOfSlots; i++)

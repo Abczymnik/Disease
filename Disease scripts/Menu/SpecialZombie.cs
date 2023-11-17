@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
 
 public class SpecialZombie : MonoBehaviour
 {
     private Animator zombieAnimator;
     private NavMeshAgent zombieAgent;
+    private UnityAction onLevelChange;
 
     private void Awake()
     {
@@ -12,11 +14,21 @@ public class SpecialZombie : MonoBehaviour
         zombieAgent = GetComponent<NavMeshAgent>();
     }
 
-    //Cinematic zombie triggered by "Nowa gra" button
-    public void LetZombieFree()
+    private void OnEnable()
+    {
+        onLevelChange += OnLevelChange;
+        EventManager.StartListening("ChangeLevel", onLevelChange);
+    }
+
+    private void OnLevelChange()
     {
         zombieAnimator.SetBool("move", true);
         zombieAnimator.SetFloat("distanceToPlayer", 6f);
         zombieAgent.SetDestination(new Vector3(32, 2, 0));
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening("ChangeLevel", onLevelChange);
     }
 }

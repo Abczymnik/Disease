@@ -9,7 +9,7 @@ public class ReturnToSpawn : GAction
     public override string TargetTag { get => "Spawn point"; }
     public override NavMeshAgent Agent { get; protected set; }
 
-    private Transform player;
+    private Transform playerTrans;
 
     private new void Awake()
     {
@@ -23,11 +23,10 @@ public class ReturnToSpawn : GAction
 
     private void Start()
     {
-        player = GameObject.Find("/Player").transform;
+        if(playerTrans == null) playerTrans = GameObject.Find("Player").transform;
         Target = GameObject.Find("/SpawnPoints/" + GetTargetSpawnName());
     }
 
-    //Set Preconditions for this action
     private WorldState[] SetPreconditions()
     {
         WorldState[] preConditions =
@@ -38,7 +37,6 @@ public class ReturnToSpawn : GAction
         return preConditions;
     }
 
-    //Set Effects for this action
     private WorldState[] SetAfterEffects()
     {
         WorldState[] afterEffects =
@@ -49,7 +47,6 @@ public class ReturnToSpawn : GAction
         return afterEffects;
     }
 
-    //Do before action
     public override bool PrePerform()
     {
         Agent.SetDestination(Target.transform.position);
@@ -57,24 +54,21 @@ public class ReturnToSpawn : GAction
         return true;
     }
 
-    //Do after action
     public override bool PostPerform()
     {
-        beliefs.RemoveState("lost");
+        Beliefs.RemoveState("lost");
         zombieAnimator.SetBool("move", false);
         return true;
     }
-    
-    //Perform action
+
     public override bool Func()
     {
-        float distToTarget = Vector3.Distance(transform.position, player.position);
+        float distToTarget = Vector3.Distance(transform.position, playerTrans.position);
         if (distToTarget >= 12f) { return true; }
-        beliefs.RemoveState("lost");
+        Beliefs.RemoveState("lost");
         return false;
     }
 
-    //Conditions for action success
     public override bool Success()
     {
         float distToTarget = Vector3.Distance(transform.position, Target.transform.position);
@@ -82,7 +76,6 @@ public class ReturnToSpawn : GAction
         return false;
     }
 
-    //Find this zombie spawn object
     private string GetTargetSpawnName()
     {
         StringBuilder targetName = new StringBuilder(transform.name);

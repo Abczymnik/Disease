@@ -7,12 +7,13 @@ public class UIItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
 {
     public Item Item { get; private set; }
     public Image SpriteImage { get; private set; }
-    private Tooltip toolTip;
-    private Transform dataBaseNotes;
+    [SerializeField] private Tooltip toolTip;
+    [SerializeField] private Transform dataBaseNotes;
+    [SerializeField] private Inventory playerInventory;
 
     private int lastEnabledNoteIndex;
     private Image scrollImage;
-    private Inventory playerInventory;
+
     private InputAction escape;
     private InputAction navigation;
 
@@ -20,18 +21,10 @@ public class UIItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
     {
         SpriteImage = GetComponent<Image>();
         scrollImage = transform.GetChild(0).GetComponent<Image>();
-        //Initialize slot w/o scrollImage
         UpdateItem(null);
 
         escape = PlayerUI.inputActions.NoteUI.Escape;
         navigation = PlayerUI.inputActions.NoteUI.Navigation;
-    }
-
-    //Unsubscribe actions
-    private void OnDisable()
-    {
-        escape.performed -= EscapePerformed;
-        navigation.performed -= NavigationPerformed;
     }
 
     private void Start()
@@ -41,7 +34,6 @@ public class UIItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
         playerInventory = GameObject.Find("/Player/Inventory").GetComponent<Inventory>();
     }
 
-    //Left/right navigation in note view
     private void NavigationPerformed(InputAction.CallbackContext context)
     {
         int ownedNotes = playerInventory.OwnedNotes;
@@ -54,11 +46,11 @@ public class UIItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
         dataBaseNotes.GetChild(lastEnabledNoteIndex).gameObject.SetActive(true);
     }
 
-    //Escape from note view and switch UI map
     private void EscapePerformed(InputAction.CallbackContext context)
     {
         dataBaseNotes.GetChild(lastEnabledNoteIndex).gameObject.SetActive(false);
         dataBaseNotes.gameObject.SetActive(false);
+        playerInventory.InventoryVisibility();
         UIHelper.EnableGUI();
         navigation.performed -= NavigationPerformed;
         escape.performed -= EscapePerformed;
@@ -91,16 +83,22 @@ public class UIItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
         toolTip.gameObject.SetActive(false);
     }
 
-    //Enable selected note and switch UI map
     public void OnPointerClick(PointerEventData eventData)
     {
         if (Item == null) return;
         lastEnabledNoteIndex = Item.Id + 1;
         dataBaseNotes.gameObject.SetActive(true);
         dataBaseNotes.GetChild(lastEnabledNoteIndex).gameObject.SetActive(true);
+        playerInventory.InventoryVisibility();
         UIHelper.DisableGUI();
         PlayerUI.SwitchActionMap(PlayerUI.inputActions.NoteUI);
         escape.performed += EscapePerformed;
         navigation.performed += NavigationPerformed;
+    }
+
+    private void OnDisable()
+    {
+        escape.performed -= EscapePerformed;
+        navigation.performed -= NavigationPerformed;
     }
 }

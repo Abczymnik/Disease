@@ -1,55 +1,55 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.SceneManagement;
 
-public class GameSceneLoader : MonoBehaviour
+public class RestartGameAfterDeath : MonoBehaviour
 {
     private List<HDAdditionalLightData> lightsData = new List<HDAdditionalLightData>();
     private List<float> lightIntensities = new List<float>();
     private List<CanvasGroup> GUICanvas = new List<CanvasGroup>();
     [SerializeField] private Volume skyLightIntense;
 
-    private void Start()
+    private UnityAction onPlayerDeath;
+
+    private void Awake()
     {
-        CursorSwitch.SwitchSkin("Standard");
-        if(skyLightIntense == null) skyLightIntense = GameObject.Find("/Settings/Dim Sky").GetComponent<Volume>();
-        StartGameScene();
+        if (skyLightIntense == null) skyLightIntense = GameObject.Find("/Settings/Dim Sky").GetComponent<Volume>();
     }
 
-    private void StartGameScene()
+    private void OnEnable()
     {
-        GetLights();
-        GetGUICanvas();
-        StartCoroutine(LoadScene());
+        onPlayerDeath += OnPlayerDeath;
+        EventManager.StartListening("PlayerDeath", onPlayerDeath);
     }
 
-    IEnumerator LoadScene()
+    IEnumerator LoadMenu()
     {
         float timer = 0;
-        float speed = 2f;
+        float timeForChanges = 5f;
 
-        while (timer < speed)
+        while(timer < timeForChanges)
         {
             timer += Time.deltaTime;
 
-            foreach (CanvasGroup GUI in GUICanvas)
+            foreach(CanvasGroup GUI in GUICanvas)
             {
-                GUI.alpha = Mathf.Lerp(0, 1, timer / speed);
+                GUI.alpha = Mathf.Lerp(1, 0, timer / timeForChanges);
             }
 
             for (int i = 0; i < lightsData.Count; i++)
             {
-                lightsData[i].intensity = Mathf.Lerp(0, lightIntensities[i], timer / speed);
+                lightsData[i].intensity = Mathf.Lerp(lightIntensities[i], 0, timer / timeForChanges);
             }
 
-            skyLightIntense.weight = Mathf.Lerp(1, 0, timer / speed);
+            skyLightIntense.weight = Mathf.Lerp(0, 1, timer / timeForChanges);
 
             yield return null;
         }
-
-        CursorSwitch.SwitchSkin("Standard");
+        SceneManager.LoadScene(0);
     }
 
     private void GetLights()
@@ -66,9 +66,21 @@ public class GameSceneLoader : MonoBehaviour
     private void GetGUICanvas()
     {
         GameObject[] GUIObj = GameObject.FindGameObjectsWithTag("GUI Element");
-        foreach (GameObject GUI in GUIObj)
+        foreach(GameObject GUI in GUIObj)
         {
             GUICanvas.Add(GUI.GetComponent<CanvasGroup>());
         }
+    }
+
+    private void OnPlayerDeath()
+    {
+        GetLights();
+        GetGUICanvas();
+        StartCoroutine(LoadMenu());
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening("PlayerDeath", onPlayerDeath);
     }
 }

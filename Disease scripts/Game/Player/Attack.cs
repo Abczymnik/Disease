@@ -1,30 +1,33 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using UnityEngine.VFX;
 
 public class Attack : MonoBehaviour
 {
+    private const float ANIMATION_LENGHT = 0.9f;
+    private const float ANIMATION_ERROR = 0.2f;
+
     private Animator attackAnimator;
-    private ClickToMove playerMovement;
+    private PlayerMovement playerMovement;
     private PlayerStats playerStats;
-    private SwordHit swordTrigger;
-    private InputAction attack;
 
-    private float attackDamage;
+    private List<Collider> enemiesHitList = new List<Collider>();
     private bool slashAvailable = true;
-    private List<Collider> enemyHits = new List<Collider>();
-    private Coroutine slashCoroutine;
+    private Coroutine attackCoroutine;
 
-    private Coroutine rotationCoroutine;
-    private float smoothRotation;
+    private float rotationSpeed;
+
+    private InputAction attackInput;
+    private UnityAction onLevelUp;
 
     public float AttackDamage { get; private set; }
-
     private float _attackSpeed;
     public float AttackSpeed
     {
-        get { return _attackSpeed;  }
+        get { return _attackSpeed; }
         private set
         {
             _attackSpeed = value;
@@ -32,87 +35,94 @@ public class Attack : MonoBehaviour
         }
     }
 
-    void Awake()
+    private void OnEnable()
+    {
+        onLevelUp += OnLevelUp;
+        EventManager.StartListening("LevelUp", onLevelUp);
+    }
+
+    private void Awake()
     {
         attackAnimator = GetComponent<Animator>();
-        attack = PlayerUI.inputActions.Gameplay.Attack;
-        attack.performed += TriggerAttack;
+        attackInput = PlayerUI.inputActions.Gameplay.Attack;
+        attackInput.performed += OnPlayerAttack;
     }
 
     private void Start()
     {
         playerStats = GetComponent<PlayerStats>();
         AttackSpeed = playerStats.AttackSpeed;
-        attackDamage = playerStats.AttackDamage;
-        playerMovement = GetComponent<ClickToMove>();
-        smoothRotation = playerMovement.SmoothRot;
-        swordTrigger = GameObject.Find("Sword_3").GetComponent<SwordHit>();
+        AttackDamage = playerStats.AttackDamage;
+        playerMovement = GetComponent<PlayerMovement>();
+        rotationSpeed = playerMovement.RotationSpeed;
     }
 
-    //UI
-    private void TriggerAttack(InputAction.CallbackContext context)
+    private void OnPlayerAttack(InputAction.CallbackContext context)
     {
-        if (slashAvailable)
-        {
-            swordTrigger.enabled = true; //Enable sword trigger attached to sword mesh
-            Slash();
-        }
+        if (!slashAvailable) return;
+
+        attackCoroutine = StartCoroutine(PerformAttackCoroutine());
     }
 
-    private void Slash()
-    {
-        slashCoroutine = StartCoroutine(AttackPressed()); //simulate attackButton hold
-    }
-
-    IEnumerator AttackPressed()
+    IEnumerator PerformAttackCoroutine()
     {
         attackAnimator.SetBool("attack", true);
 
-        while (attack.IsPressed())
+        while (attackInput.IsPressed())
         {
-            swordTrigger.enabled = true;
-            playerMovement.MovementUIOff(); //Block movementUI
-            slashAvailable = false; //Block start new coroutine from trigger attack
-            playerMovement.Stop(1 / AttackSpeed + 1f); //Stop character
+            PrepareToAttack();
 
-            //Rotate character
             Quaternion startRotation = transform.rotation;
-            Quaternion targetRotation = CalcTargetRot();
+            Quaternion targetRotation = CalcTargetRotation();
             float rotationPercentage = 0f;
 
             while (rotationPercentage < 1)
             {
-                rotationPercentage += Time.deltaTime * smoothRotation;
+                rotationPercentage += Time.deltaTime * rotationSpeed;
                 transform.rotation = Quaternion.Slerp(startRotation, targetRotation, rotationPercentage);
                 yield return null;
             }
 
-            while (playerMovement.Velocity > 1f) //Wait for character to almost stop
+            while (playerMovement.Velocity > 1f)
             {
                 yield return null;
             }
 
-            attackAnimator.SetInteger("attackType", Random.Range(1, 4)); //Random attack animation
-            attackAnimator.SetTrigger("triggerAttack");
-            enemyHits.Clear(); //Clear enemy hits List
-            yield return new WaitForSeconds(0.9f / AttackSpeed); //Let attack animation end
-            slashAvailable = true; //Enable next attack
-            playerMovement.MovementUIOn();
-            swordTrigger.enabled = false; //Disable sword trigger
+            DrawAttackAndSlash();
+            yield return new WaitForSeconds(ANIMATION_LENGHT / AttackSpeed);
+            RecoverAfterAttack();
         }
 
         attackAnimator.SetBool("attack", false);
     }
 
-    //Calc direction to rotate based on mouse pos
-    private Quaternion CalcTargetRot()
+    private void PrepareToAttack()
+    {
+        playerMovement.MovementUIOff();
+        slashAvailable = false;
+        playerMovement.StopMovementForSeconds(1 / AttackSpeed + ANIMATION_ERROR);
+    }
+
+    private void DrawAttackAndSlash()
+    {
+        enemiesHitList.Clear();
+        attackAnimator.SetInteger("attackType", Random.Range(1, 4));
+        attackAnimator.SetTrigger("triggerAttack");
+    }
+
+    private void RecoverAfterAttack()
+    {
+        slashAvailable = true;
+        playerMovement.MovementUIOn();
+    }
+
+    private Quaternion CalcTargetRotation()
     {
         Vector2 mousePos = Mouse.current.position.ReadValue();
         Vector3 clickPos = Vector3.zero;
-        RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(mousePos);
 
-        if (Physics.Raycast(ray, out hit, 1000))
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000))
         {
             clickPos = new Vector3(hit.point.x, transform.position.y, hit.point.z);
         }
@@ -122,20 +132,48 @@ public class Attack : MonoBehaviour
         return targetRotation;
     }
 
-    //Capture sword collision with enemies
-    public void Hit(Collider enemy)
+    public void EnemyHit(Collision enemyHit)
     {
-        if (!enemyHits.Contains(enemy))
+        if (enemiesHitList.Contains(enemyHit.collider)) return;
+
+        enemiesHitList.Add(enemyHit.collider);
+        enemyHit.gameObject.GetComponent<Zombie>().TakeDamage(AttackDamage);
+
+        Vector3 effectPos = enemyHit.contacts[0].point;
+        Vector3 effectDir = new Vector3(enemyHit.contacts[0].normal.x, 0, enemyHit.contacts[0].normal.z);
+        BloodSplashOnHit(effectPos, effectDir);
+    }
+
+    private void BloodSplashOnHit(Vector3 effectPos, Vector3 effectDir)
+    {
+        GameObject bloodHitObj = BloodHitPool.sharedInstance.GetPooledObject();
+        if (bloodHitObj == null) return; 
+
+        bloodHitObj.transform.position = effectPos;
+        bloodHitObj.transform.forward = effectDir;
+        bloodHitObj.SetActive(true);
+
+        VisualEffect bloodHitVfx = bloodHitObj.GetComponent<VisualEffect>();
+        bloodHitVfx.SetFloat("HitPointYValue", -bloodHitObj.transform.position.y);
+        bloodHitVfx.Play();
+
+        StartCoroutine(ReturnObjToPool());
+
+        IEnumerator ReturnObjToPool()
         {
-            enemyHits.Add(enemy);
-            enemy.GetComponent<Zombie>().TakeDmg(attackDamage);
+            yield return new WaitForSeconds(3f);
+            bloodHitObj.SetActive(false);
         }
     }
 
-    //Update AttackDamage and AttackSpeed
-    public void LevelUp()
+    private void OnLevelUp()
     {
         AttackDamage = playerStats.AttackDamage;
         AttackSpeed = playerStats.AttackSpeed;
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening("LevelUp", onLevelUp);
     }
 }

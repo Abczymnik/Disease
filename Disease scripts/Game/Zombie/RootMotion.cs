@@ -10,7 +10,7 @@ public class RootMotion : MonoBehaviour
     private ZombieGoals zombieGoals;
     private NavMeshAgent agent;
 
-    private Vector2 velocity;
+    private Vector2 zombieVelocity;
     private Vector2 smoothDeltaPosition;
 
     private void Awake()
@@ -23,30 +23,28 @@ public class RootMotion : MonoBehaviour
     private void Start()
     {
         if (zombieAnimator == null) return;
-        activeGAction = zombieGoals.currentAction;
+        activeGAction = zombieGoals.CurrentAction;
         agent.updatePosition = false;
         agent.updateRotation = true;
     }
 
     private void Update()
     {
-        //Wait for active action
         if (activeGAction == null || activeGAction.running == false)
         {
-            activeGAction = zombieGoals.currentAction;
+            activeGAction = zombieGoals.CurrentAction;
             return;
         }
 
-        //If target in range and not in front of transform start rotation coroutine
         float distToTarget = Vector3.Distance(transform.position, activeGAction.Target.transform.position);
         if (distToTarget < 1.2f)
         {
             if (IsTargetInFront(0.9f)) return;
 
-            if (rotationCoroutine == null) { rotationCoroutine = StartCoroutine(PerformRotation(distToTarget)); }
+            if (rotationCoroutine == null) rotationCoroutine = StartCoroutine(PerformRotation(distToTarget));
         }
 
-        if(zombieAnimator.GetBool("move") == true) { SynchronizeAnimatorWithAgent(); }
+        if(zombieAnimator.GetBool("move") == true) SynchronizeAnimatorWithAgent();
     }
 
     private void SynchronizeAnimatorWithAgent()
@@ -61,13 +59,13 @@ public class RootMotion : MonoBehaviour
         float smooth = Mathf.Min(1, Time.deltaTime / 0.1f);
         smoothDeltaPosition = Vector2.Lerp(smoothDeltaPosition, deltaPosition, smooth);
 
-        velocity = smoothDeltaPosition / Time.deltaTime;
+        zombieVelocity = smoothDeltaPosition / Time.deltaTime;
         if(agent.remainingDistance < agent.stoppingDistance)
         {
-            velocity = Vector2.Lerp(Vector2.zero, velocity, agent.remainingDistance / agent.stoppingDistance);
+            zombieVelocity = Vector2.Lerp(Vector2.zero, zombieVelocity, agent.remainingDistance / agent.stoppingDistance);
         }
 
-        if (velocity.magnitude > 0.5f) { zombieAnimator.SetFloat("velocity", velocity.magnitude); }
+        if (zombieVelocity.magnitude > 0.5f) { zombieAnimator.SetFloat("velocity", zombieVelocity.magnitude); }
 
         float deltaMagnitude = worldDeltaPosition.magnitude;
         if(deltaMagnitude > agent.radius / 2f)
@@ -86,7 +84,7 @@ public class RootMotion : MonoBehaviour
 
     IEnumerator PerformRotation(float rotationSpeedDenom)
     {
-        float rotationSpeed = 7 / rotationSpeedDenom;
+        float rotationSpeed = 5 / rotationSpeedDenom;
         float rotationProgress = 0f;
         Quaternion startRotation = transform.rotation;
         Quaternion endRotation = Quaternion.LookRotation(activeGAction.Target.transform.position - transform.position);

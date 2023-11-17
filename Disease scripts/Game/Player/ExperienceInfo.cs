@@ -4,31 +4,31 @@ using UnityEngine.EventSystems;
 
 public class ExperienceInfo : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    private Experience experience;
-    private TMPro.TMP_Text myText;
-    private Canvas thisCanvas;
+    private Experience playerExperience;
+    [SerializeField] private Canvas experienceInfoCanvas;
+    [SerializeField] private TMPro.TMP_Text experienceText;
     private Coroutine refreshExp;
 
     private void Awake()
     {
-        myText = transform.GetChild(0).GetComponentInChildren<TMPro.TMP_Text>();
-        thisCanvas = transform.GetChild(0).GetComponent<Canvas>();
+        if (experienceText == null) experienceText = transform.GetChild(0).GetComponentInChildren<TMPro.TMP_Text>();
+        if (experienceInfoCanvas == null) experienceInfoCanvas = transform.GetChild(0).GetComponent<Canvas>();
     }
 
     private void Start()
     {
-        experience = GetComponentInParent<Experience>();
+        playerExperience = GetComponentInParent<Experience>();
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        thisCanvas.enabled = true;
+        experienceInfoCanvas.enabled = true;
         refreshExp = StartCoroutine(RefreshExp());
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        thisCanvas.enabled = false;
+        experienceInfoCanvas.enabled = false;
         StopCoroutine(refreshExp);
     }
 
@@ -36,7 +36,7 @@ public class ExperienceInfo : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         while(true)
         {
-            myText.text = ((int)experience.CurrentExp).ToString() + "/" + ((int)experience.MaxExp).ToString();
+            experienceText.text = ((int)playerExperience.CurrentExp).ToString() + "/" + ((int)playerExperience.MaxExp).ToString();
             yield return new WaitForSeconds(0.1f);
         }
     }

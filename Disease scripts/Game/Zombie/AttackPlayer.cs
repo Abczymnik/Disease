@@ -53,7 +53,6 @@ public class AttackPlayer : GAction
 
     public override bool PrePerform()
     {
-        //If target is in front then start attack coroutine
         zombieAnimator.SetBool("attack", true);
         if (attackPlayerCoroutine == null && IsTargetInFront(0.75f)) { attackPlayerCoroutine = StartCoroutine(ZombieAttack()); }
         return true;
@@ -104,9 +103,9 @@ public class AttackPlayer : GAction
         while(true)
         {
             yield return new WaitForSeconds(0.5f);
-            playerStats.TakeDamage(5f);
+            EventManager.TriggerEvent("DamagePlayer", 5f);
             yield return new WaitForSeconds(0.5f);
-            playerStats.TakeDamage(5f);
+            EventManager.TriggerEvent("DamagePlayer", 5f);
         }
     }
 }

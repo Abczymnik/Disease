@@ -1,4 +1,3 @@
-
 public class ZombieGoals: GAgent
 {
     new void Start()
@@ -18,7 +17,6 @@ public class ZombieGoals: GAgent
         goals.Add(s4, 4);
     }
 
-    //Stop Planner when script disable
     private void OnDisable()
     {
         PlanStop();

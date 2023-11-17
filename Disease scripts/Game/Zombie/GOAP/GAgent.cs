@@ -5,18 +5,16 @@ using System.Linq;
 
 public class GAgent : MonoBehaviour
 {
-    public List<GAction> actions = new List<GAction>();
+    private List<GAction> actions = new List<GAction>();
     public Dictionary<SubGoal, int> goals = new Dictionary<SubGoal, int>();
-    //public GInventory inventory = new GInventory();
     public WorldStates beliefs = new WorldStates();
 
-    GPlanner planner;
-    Queue<GAction> actionQueue;
-    public GAction currentAction;
-    SubGoal currentGoal;
+    public GAction CurrentAction { get; private set; }
+    private GPlanner planner;
+    private Queue<GAction> actionQueue;
+    private SubGoal currentGoal;
     private Coroutine decisionMakerCoroutine;
 
-    //Refresh ferquency for coroutine yield
     private Dictionary<string, float> refreshRateDict = new Dictionary<string, float>()
     {
         {"Search", 1f},
@@ -37,41 +35,41 @@ public class GAgent : MonoBehaviour
         decisionMakerCoroutine = StartCoroutine(DecisionMaker());
     }
 
-    void CompleteAction()
+    private void CompleteAction()
     {
-        currentAction.running = false;
-        currentAction.PostPerform();
+        CurrentAction.running = false;
+        CurrentAction.PostPerform();
     }
 
     IEnumerator DecisionMaker()
     {
         while(true)
         {
-            if(currentAction != null && currentAction.running)
+            if(CurrentAction != null && CurrentAction.running)
             {
-                if (currentAction.Success())
+                if (CurrentAction.Success())
                 {
-                    currentAction.Agent.ResetPath();
+                    CurrentAction.Agent.ResetPath();
                     CompleteAction();
                     continue;
                 }
 
-                if (!currentAction.Func()) 
+                if (!CurrentAction.Func()) 
                 {
                     actionQueue = null;
-                    currentAction.running = false;
+                    CurrentAction.running = false;
                 }
 
-                yield return new WaitForSeconds(GetRefreshRate(currentAction.ActionType));
+                yield return new WaitForSeconds(GetRefreshRate(CurrentAction.ActionType));
 
                 continue;
             }
 
-            if (planner == null || actionQueue == null) { FindNewPlan(); }
+            if (planner == null || actionQueue == null) FindNewPlan();
 
-            if (actionQueue != null && actionQueue.Count == 0) { CurrGoalAchieved(); }
+            if (actionQueue != null && actionQueue.Count == 0) CurrGoalAchieved();
 
-            if (actionQueue != null && actionQueue.Count > 0) { TrySelectNextAction(); }
+            if (actionQueue != null && actionQueue.Count > 0) TrySelectNextAction();
 
             yield return null;
 
@@ -105,16 +103,16 @@ public class GAgent : MonoBehaviour
 
     private void TrySelectNextAction()
     {
-        currentAction = actionQueue.Dequeue();
+        CurrentAction = actionQueue.Dequeue();
 
-        if (currentAction.PrePerform()) { currentAction.running = true; }
+        if (CurrentAction.PrePerform()) CurrentAction.running = true;
 
-        else { actionQueue = null; }
+        else actionQueue = null;
     }
 
     private void CurrGoalAchieved()
     {
-        if (currentGoal.remove) { goals.Remove(currentGoal); }
+        if (currentGoal.remove) goals.Remove(currentGoal);
         planner = null;
     }
 

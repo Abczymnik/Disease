@@ -5,11 +5,11 @@ public class CursorTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 {
     public void OnPointerEnter(PointerEventData eventData)
     {
-        CursorSwitch.SwitchSkin("attack");
+        CursorSwitch.SwitchSkin("Attack");
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        CursorSwitch.SwitchSkin("standard");
+        CursorSwitch.SwitchSkin("Standard");
     }
 }

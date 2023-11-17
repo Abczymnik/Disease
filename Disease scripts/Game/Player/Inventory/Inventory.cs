@@ -1,14 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class Inventory : MonoBehaviour
 {
-    private List<Item> characterItems = new List<Item>();
+    private List<Item> playerNotes = new List<Item>();
     private UIInventory inventoryUI;
     private Transform inventoryPanel;
-    private bool inventoryEnabled;
+    private bool isInventoryEnabled;
+
+    private UnityAction onNewNoteOnMap;
 
     private InputAction inventorySwitch;
     public int NotesOnMap { get; set; }
@@ -20,7 +23,7 @@ public class Inventory : MonoBehaviour
         get { return _ownedNotes; }
         private set
         {
-            if (value < _ownedNotes) { NotesOnMap--; }
+            if (value < _ownedNotes) NotesOnMap--;
             _ownedNotes = value;
         }
     }
@@ -31,14 +34,15 @@ public class Inventory : MonoBehaviour
         inventorySwitch.performed += InventoryPerformed;
     }
 
-    private void OnDisable()
+    private void OnEnable()
     {
-        inventorySwitch.performed -= InventoryPerformed;
+        onNewNoteOnMap += OnNewNoteOnMap;
+        EventManager.StartListening("NewNoteOnMap", onNewNoteOnMap);
     }
 
     private void Start()
     {
-        ItemDatabase = GameObject.Find("ItemDatabase").GetComponent<ItemDatabase>();
+        if (ItemDatabase == null) ItemDatabase = GameObject.Find("ItemDatabase").GetComponent<ItemDatabase>();
         inventoryUI = GetComponent<UIInventory>();
         inventoryPanel = transform.GetChild(0);
 
@@ -56,7 +60,7 @@ public class Inventory : MonoBehaviour
     public void GiveItem()
     {
         Item itemToAdd = ItemDatabase.GetItem(OwnedNotes);
-        characterItems.Add(itemToAdd);
+        playerNotes.Add(itemToAdd);
         inventoryUI.AddNewItem(itemToAdd);
         OwnedNotes++;
     }
@@ -64,7 +68,7 @@ public class Inventory : MonoBehaviour
     public void GiveItem(int id)
     {
         Item itemToAdd = ItemDatabase.GetItem(id);
-        characterItems.Add(itemToAdd);
+        playerNotes.Add(itemToAdd);
         inventoryUI.AddNewItem(itemToAdd);
         OwnedNotes++;
     }
@@ -72,14 +76,14 @@ public class Inventory : MonoBehaviour
     public void GiveItem(string itemName)
     {
         Item itemToAdd = ItemDatabase.GetItem(itemName);
-        characterItems.Add(itemToAdd);
+        playerNotes.Add(itemToAdd);
         inventoryUI.AddNewItem(itemToAdd);
         OwnedNotes++;
     }
 
     public Item CheckForItem(int id)
     {
-        return characterItems.Find(item => item.Id == id);
+        return playerNotes.Find(item => item.Id == id);
     }
 
     public void RemoveItem(int id)
@@ -87,24 +91,35 @@ public class Inventory : MonoBehaviour
         Item itemToRemove = CheckForItem(id);
         if (itemToRemove != null)
         {
-            characterItems.Remove(itemToRemove);
+            playerNotes.Remove(itemToRemove);
             inventoryUI.RemoveItem(itemToRemove);
             OwnedNotes--;
         }
     }
 
-    //Enable/disable Inventory w/o tooltip component
-    private void InventoryVisibility()
+    public void InventoryVisibility()
     {
-        inventoryEnabled = !inventoryEnabled;
-        inventoryPanel.GetComponent<Image>().enabled = inventoryEnabled; //Enable/disable inventory panel
-        inventoryPanel.GetChild(0).gameObject.SetActive(inventoryEnabled); //Enable/disable slots grid
-        if (inventoryEnabled) { CursorSwitch.SwitchSkin("note"); }
+        isInventoryEnabled = !isInventoryEnabled;
+        inventoryPanel.GetComponent<Image>().enabled = isInventoryEnabled;
+        inventoryPanel.GetChild(0).gameObject.SetActive(isInventoryEnabled);
+
+        if (isInventoryEnabled) CursorSwitch.SwitchSkin("Note");
         else
         {
             UIHelper.EnableGUI();
-            CursorSwitch.SwitchSkin("standard");
-            inventoryPanel.GetChild(1).gameObject.SetActive(inventoryEnabled); //Disable tooltip
+            CursorSwitch.SwitchSkin("Standard");
+            inventoryPanel.GetChild(1).gameObject.SetActive(isInventoryEnabled);
         }
+    }
+
+    private void OnNewNoteOnMap()
+    {
+        NotesOnMap++;
+    }
+
+    private void OnDisable()
+    {
+        inventorySwitch.performed -= InventoryPerformed;
+        EventManager.StopListening("NewNoteOnMap", onNewNoteOnMap);
     }
 }

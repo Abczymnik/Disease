@@ -1,7 +1,5 @@
-
 public sealed class GWorld
 {
-    //World singleton
     private static readonly GWorld instance = new GWorld();
     private static WorldStates world;
 

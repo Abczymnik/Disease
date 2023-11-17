@@ -13,7 +13,6 @@ public class OptionsList : MonoBehaviour, IPointerClickHandler
         thisButtonHighlight = GetComponent<ButtonHighlight>();
     }
 
-    //Disable main buttons while in options
     private void DisableMainButtons()
     {
         canvasArray = parentTrans.GetComponentsInChildren<CanvasGroup>();

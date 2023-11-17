@@ -22,7 +22,6 @@ public class ZombiesMenu : MonoBehaviour
         ZombiesMovement();
     }
 
-    //Fill zombie List except cinematic zombie
     private void FillZombieList()
     {
         for (int i = 0; i < transform.childCount; i++)
@@ -32,7 +31,6 @@ public class ZombiesMenu : MonoBehaviour
         }
     }
 
-    //Set necessary variables etc for zombies
     private void SetZombieAgentsAnimators()
     {
         int i = 0;
@@ -47,7 +45,6 @@ public class ZombiesMenu : MonoBehaviour
         }
     }
 
-    //Set zombie waypoints
     private void FillStartEndPoints()
     {
         foreach(Transform zombie in zombiesList)
@@ -57,7 +54,6 @@ public class ZombiesMenu : MonoBehaviour
         }
     }
 
-    //Swap i-th zombie waypoints
     private void SwapMoveDirection(int i)
     {
         Vector3 temp = StartPoints[i];
@@ -65,7 +61,6 @@ public class ZombiesMenu : MonoBehaviour
         EndPoints[i] = temp;
     }
 
-    //Movement func
     private void ZombiesMovement()
     {
         for(int i = 0; i<zombieAgents.Count; i++)
@@ -78,7 +73,4 @@ public class ZombiesMenu : MonoBehaviour
             }
         }
     }
-
-
-
 }

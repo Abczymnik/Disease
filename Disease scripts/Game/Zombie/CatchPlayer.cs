@@ -18,12 +18,6 @@ public sealed class CatchPlayer : GAction
         base.Awake();
     }
 
-    private void Start()
-    {
-        
-    }
-
-    //Set Preconditions needed for this action
     private WorldState[] SetPreconditions()
     {
         WorldState[] preConditions =
@@ -34,7 +28,6 @@ public sealed class CatchPlayer : GAction
         return preConditions;
     }
 
-    //Set Effects for this action
     private WorldState[] SetAfterEffects()
     {
         WorldState[] afterEffects =
@@ -45,29 +38,25 @@ public sealed class CatchPlayer : GAction
         return afterEffects;
     }
 
-    //Do before action
     public override bool PrePerform()
     {
         zombieAnimator.SetBool("move", true);
         return true;
     }
 
-    //Do after action
     public override bool PostPerform()
     {
         zombieAnimator.SetBool("move", false);
         return true;
     }
 
-    //Perform action
     public override bool Func()
     {
         float distToTarget = Vector3.Distance(transform.position, Target.transform.position);
 
-        //If zombie is too far away his spawn then go back to spawn
         if (distToTarget > MaxRange)
         {
-            if (IsAgentLost()) { beliefs.ModifyState("lost", 1); }
+            if (IsAgentLost()) { Beliefs.ModifyState("lost", 1); }
 
             zombieAnimator.SetBool("move", false);
             Agent.ResetPath();
@@ -79,7 +68,6 @@ public sealed class CatchPlayer : GAction
         return true;
     }
 
-    //Conditions for success
     public override bool Success()
     {
         float distToTarget = Vector3.Distance(transform.position, Target.transform.position);
@@ -91,10 +79,9 @@ public sealed class CatchPlayer : GAction
         return false;
     }
 
-    //Check is agent lost
     private bool IsAgentLost()
     {
-        float distToSpawn = Vector3.Distance(transform.position, SpawnPoint);
+        float distToSpawn = Vector3.Distance(transform.position, ZombieSpawnPoint);
         if (distToSpawn > 5f) return true;
         return false;
     }

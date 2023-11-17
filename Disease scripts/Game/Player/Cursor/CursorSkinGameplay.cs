@@ -1,32 +1,33 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class CursorSkinMenu : MonoBehaviour
+public class CursorSkinGameplay : MonoBehaviour
 {
     private InputAction mousePosition;
     private Camera cam;
 
     private void Awake()
     {
-        PlayerUI.SwitchActionMap(PlayerUI.inputActions.Menu);
-        mousePosition = PlayerUI.inputActions.Menu.Pointer;
-        mousePosition.performed += MoveToCursor;
+        PlayerUI.SwitchActionMap(PlayerUI.inputActions.Gameplay);
+        mousePosition = PlayerUI.inputActions.Gameplay.Pointer;
         cam = Camera.main;
+    }
+
+    private void LateUpdate()
+    {
+        MoveToCursor();
     }
 
     private void Start()
     {
         CursorSwitch.SwitchSkin("Standard");
+        CursorSwitch.ShowCursor();
     }
 
-    private void MoveToCursor(InputAction.CallbackContext context)
+    private void MoveToCursor()
     {
         Vector2 mousePos = mousePosition.ReadValue<Vector2>();
         transform.position = cam.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, 1));
-    }
 
-    private void OnDisable()
-    {
-        mousePosition.performed -= MoveToCursor;
     }
 }

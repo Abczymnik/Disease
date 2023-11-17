@@ -15,13 +15,13 @@ public class Intro : MonoBehaviour
     private bool changeScene = false;
     private InputAction skip;
     private bool skipTriggered = false;
-    private Volume dimVolume;
+    [SerializeField] private Volume dimVolume;
 
     private void Awake()
     {
         blood = transform.GetChild(4).gameObject;
         tip = transform.GetChild(5).gameObject;
-        dimVolume = GameObject.Find("/Settings/Dim Volume").GetComponent<Volume>();
+        if(dimVolume == null) dimVolume = GameObject.Find("/Settings/Dim Volume").GetComponent<Volume>();
         skip = PlayerUI.inputActions.Intro.Skip;
         PlayerUI.SwitchActionMap(PlayerUI.inputActions.Intro);
     }
@@ -53,7 +53,6 @@ public class Intro : MonoBehaviour
         skip.performed += SkipPerformed;
     }
 
-    //Fade intro canvas and Async load game scene.
     public IEnumerator Start()
     {
         CursorSwitch.ShowCursor();
@@ -64,7 +63,6 @@ public class Intro : MonoBehaviour
             yield return null;
         }
 
-        //Fade first scene
         SetComponentsForScene(1);
 
         yield return new WaitForSeconds(1.5f);
@@ -99,7 +97,6 @@ public class Intro : MonoBehaviour
         actualSceneTrans.GetComponent<Canvas>().enabled = false;
         actualImageFade.material.SetFloat("_Metallic", 1);
 
-        //Fade second scene
         SetComponentsForScene(2);
 
         for (float f = 0; f < 3; f += Time.deltaTime)
@@ -129,7 +126,6 @@ public class Intro : MonoBehaviour
         actualSceneTrans.GetComponent<Canvas>().enabled = false;
         actualImageFade.material.SetFloat("_Metallic", 1);
 
-        //Fade third scene with blood splash
         SetComponentsForScene(3);
 
         for (float f = 0; f < 3; f += Time.deltaTime)
@@ -169,12 +165,11 @@ public class Intro : MonoBehaviour
         bloodFade.material.SetColor("_BaseColor", new Color(1, 1, 1, 1));
         bloodFade.enabled = false;
 
-        CursorSwitch.SwitchSkin("standard");
+        CursorSwitch.SwitchSkin("Standard");
         CursorSwitch.ShowCursor();
         changeScene = true;
     }
 
-    //Async load Gameplay
     private IEnumerator AsyncLoadScene()
     {
         yield return null;
