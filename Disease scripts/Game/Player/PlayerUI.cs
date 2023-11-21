@@ -10,7 +10,6 @@ public class PlayerUI : MonoBehaviour
         SwitchActionMap(inputActions.Gameplay);
     }
 
-    //Switch action map in one place w/o multiple instances
     public static void SwitchActionMap(InputActionMap actionMap)
     {
         if(actionMap.enabled) { return; }

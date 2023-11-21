@@ -75,7 +75,7 @@ public class Zombie : MonoBehaviour
 
         GetComponent<Collider>().enabled = false;
         GetComponent<RootMotion>().enabled = false;
-        GetComponent<AttackPlayer>().enabled = false;
+        GetComponent<EnemyAttack>().enabled = false;
         GetComponent<ReturnToSpawn>().enabled = false;
         GetComponent<CatchPlayer>().enabled = false;
         GetComponent<LookForPlayer>().enabled = false;

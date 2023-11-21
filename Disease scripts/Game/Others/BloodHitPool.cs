@@ -1,20 +1,23 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class BloodHitPool : MonoBehaviour
 {
-    public static BloodHitPool sharedInstance;
-    [SerializeField]
+    public static BloodHitPool Instance { get; private set; }
     private List<GameObject> pooledObjects;
-    [SerializeField]
-    private GameObject objectToPool;
-    [SerializeField]
-    private int amountToPool;
+    [SerializeField] private GameObject objectToPool;
+    [SerializeField] private int amountToPool = 10;
 
     private void Awake()
     {
-        sharedInstance = this;
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this);
+        }
+        else
+        {
+            Instance = this;
+        }
     }
 
     private void Start()
@@ -34,7 +37,7 @@ public class BloodHitPool : MonoBehaviour
     {
         for(int i=0; i < amountToPool; i++)
         {
-            if(!pooledObjects[i].activeInHierarchy) { return pooledObjects[i]; }
+            if(!pooledObjects[i].activeInHierarchy) return pooledObjects[i];
         }
 
         return null;

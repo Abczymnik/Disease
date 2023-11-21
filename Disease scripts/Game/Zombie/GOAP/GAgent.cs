@@ -78,8 +78,7 @@ public class GAgent : MonoBehaviour
 
     private float GetRefreshRate(string actionType)
     {
-        float refreshRate;
-        bool hasValue = refreshRateDict.TryGetValue(actionType, out refreshRate);
+        bool hasValue = refreshRateDict.TryGetValue(actionType, out float refreshRate);
         if (hasValue) return refreshRate;
         return 0f;
     }

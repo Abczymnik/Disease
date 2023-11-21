@@ -7,7 +7,7 @@ public class PlayerStats : MonoBehaviour
     [SerializeField] private HealthBar playerHealth;
     [SerializeField] private Experience playerExperience;
     private PlayerMovement playerMovement;
-    private Attack playerAttack;
+    private PlayerAttack playerAttack;
     private Animator playerAnimator;
 
     private UnityAction onPlayerDeath;
@@ -80,7 +80,7 @@ public class PlayerStats : MonoBehaviour
     {
         playerAnimator = GetComponent<Animator>();
         playerMovement = GetComponent<PlayerMovement>();
-        playerAttack = GetComponent<Attack>();
+        playerAttack = GetComponent<PlayerAttack>();
         MaxHealth = 100f;
         CurrentHealth = MaxHealth;
         MaxExp = 100f;

@@ -6,7 +6,7 @@ public class CursorFollower : MonoBehaviour
     private InputAction mousePosition;
     private Rigidbody cursorHandleRigbody;
 
-    public Vector2 ScreenResolution { get; set; }
+    public Vector2 ScreenResolution { get; private set; }
     public Vector2 LastCursorPosition { get; set; }
 
     private void Awake()
